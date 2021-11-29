@@ -14,7 +14,7 @@ import urllib.parse
 # password = urllib.parse.quote_plus(MONGO_PASSWORD)
 
 # myclient = pymongo.MongoClient("%s://%s:%s@%s/%s" % (MONGO_PREFIX, username, password, MONGO_IP_PORT, MONGO_DB_WITH_AUTH))
-myclient = pymongo.MongoClient("mongodb://localhost:27017/cloud_socioex")
+myclient = pymongo.MongoClient("mongodb://localhost:27017/socioex")
 
 mydb = myclient.get_database()
 
