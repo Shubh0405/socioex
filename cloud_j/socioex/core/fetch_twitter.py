@@ -48,7 +48,6 @@ def get_tweets(username):
         json_str = json.dumps(status._json)
         
         if 'extended_entities' in json_str and 'video_info' in json_str:
-            print(tweet.extended_entities)
             temp_data["video"] = tweet.extended_entities['media'][0]['video_info']['variants'][0]['url']
         else:
             temp_data["video"] = None

@@ -3,7 +3,9 @@ from bson import json_util
 from fastapi import Query, APIRouter, Response, status, Request
 from core.connections import export_db_class
 from core.fetch_twitter import get_tweets
-from core.aws_recognition import get_image_recognition, get_image_url_recognition
+from core.aws_recognition import get_image_url_recognition
+from core.aws_comprehend import get_comp_entities
+from core.ibm_tone import get_tone_analysis
 from variables import CONFIG
 
 twitter_router = APIRouter() 
@@ -15,43 +17,46 @@ translate = boto3.client('translate',
                         aws_secret_access_key=CONFIG["AWS_SECRET_KEY"])
 
 
-@twitter_router.get('/get-user-data')
-async def get_user_data(request:Request, user: str = Query(None)):
-    my_collection = database['user_twitter']
-    print(database)
-    print(my_collection)
+@twitter_router.get('/get-user-tweets')
+async def get_user_tweets(request:Request, user: str = Query(None)):
+    my_collection = database['user_tweets']
 
-    data = list(my_collection.find({"user": user}))
-    data2 = list(my_collection.find({}))
-    print(len(data2))
-
-    for d in data:
-        t_text = translate.translate_text(Text=d["content"], SourceLanguageCode=d["language"], TargetLanguageCode="en")
-        d["content"] = t_text["TranslatedText"] 
-
-    data = json_util.dumps(data)
-
-    return Response(content = data, media_type="application/json", status_code= status.HTTP_200_OK)
-
-@twitter_router.get('/get-user-twitter')
-async def get_user_twitter(request:Request, user: str = Query(None)):
     data = get_tweets(user)
 
     for d in data:
+        d["user"] = user
         d["text"] = translate.translate_text(Text=d["text"], SourceLanguageCode="auto", TargetLanguageCode="en")["TranslatedText"]
+        ex = my_collection.find(d).count()
+        if not ex:
+            my_collection.insert_one(d)
+
+    data = list(my_collection.find({"user": user}))
+    data = json_util.dumps(data)
+
+    return Response(content = data, media_type="application/json", status_code= status.HTTP_200_OK)
+
+
+@twitter_router.get('/get-user-data')
+async def get_user_data(request:Request, user: str = Query(None)):
+    my_collection = database['user_tweets']
+    data = list(my_collection.find({"user": user}))
+
+    for d in data:
         if d["image"]:
-            d["image_labels"] = get_image_url_recognition(d["image"])
-
+            d["image_labels"] = get_image_url_recognition(d["image"])["Labels"]
+        # d["text_entities"] = get_comp_entities(d["text"])["Entities"]
+        d["tweet_tone"] = get_tone_analysis(d["text"])
+        
     data = json_util.dumps(data)
 
     return Response(content = data, media_type="application/json", status_code= status.HTTP_200_OK)
 
-@twitter_router.get('/get-recognition')
-async def get_recognition(request:Request, url: str = Query(None)):
-    data = get_image_url_recognition(url)
 
+@twitter_router.get('/get-test-response')
+async def get_user_data(request:Request):
+    data = {
+        "test": "response",
+        "test2": "data"
+    }
     data = json_util.dumps(data)
-
     return Response(content = data, media_type="application/json", status_code= status.HTTP_200_OK)
-
-    
