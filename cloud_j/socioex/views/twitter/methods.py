@@ -52,6 +52,50 @@ async def get_user_data(request:Request, user: str = Query(None)):
     return Response(content = data, media_type="application/json", status_code= status.HTTP_200_OK)
 
 
+@twitter_router.get('/get-user-tone')
+async def get_user_data(request:Request, user: str = Query(None)):
+    my_collection = database['user_tweets']
+    data = list(my_collection.find({"user": user}))
+
+    tones = {
+      'HAPPY': 0,
+      'SAD': 0,
+      'EXCITED': 0,
+      'NERVOUS': 0,
+      'DEPRESSED': 0,
+      'ANGER': 0,
+      'FEAR': 0,
+      'JOY': 0
+    }
+
+    for d in data:
+        
+        x = get_tone_analysis(d["text"])
+        tones[x["tone"]] += x["percent"]
+
+    arr = [['Emotion','Percentage']]
+
+    for i in tones:
+        arr.append([i,tones[i]])
+        
+    data = json_util.dumps({"arr":arr})
+
+    return Response(content = data, media_type="application/json", status_code= status.HTTP_200_OK)
+
+@twitter_router.get('/get-user-images')
+async def get_user_data(request:Request, user: str = Query(None)):
+    my_collection = database['user_tweets']
+    data = list(my_collection.find({"user": user}))
+
+    for d in data:
+        if d["image"]:
+            d["image_labels"] = get_image_url_recognition(d["image"])["Labels"]
+        
+    data = json_util.dumps(data)
+
+    return Response(content = data, media_type="application/json", status_code= status.HTTP_200_OK)
+
+
 @twitter_router.get('/get-test-response')
 async def get_user_data(request:Request):
     data = {
