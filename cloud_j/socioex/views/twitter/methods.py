@@ -89,9 +89,44 @@ async def get_user_data(request:Request, user: str = Query(None)):
 
     for d in data:
         if d["image"]:
-            d["image_labels"] = get_image_url_recognition(d["image"])["Labels"]
+            if "image_labels" not in d.keys():
+                image_labels = get_image_url_recognition(d["image"])["Labels"]
+                my_collection.update({"_id": d["_id"]},{"$set": {"image_labels": image_labels}})
+            
+
+    # labels = {}
+
+    # for i in data:
+    #     for j in data["image_labels"]:
+    #         if j["Name"] in labels.keys():
+    #             labels[j["Name"]] += j["Confidence"]
+    #             continue
+    #         labels[j["Name"]] = j["Confdence"]
+
+    update_data = list(my_collection.find({"user":user}))
+
+    labels_dic = {}
+    count = {}
+
+    for d in update_data:
+        if "image_labels" in d.keys(): 
+            for j in d["image_labels"]:
+                if j["Name"] in labels_dic.keys():
+                    x = (j["Confidence"] + labels_dic[j["Name"]])/(count["Name"] + 1)
+                    labels_dic["Name"] = x
+                    count["Name"] += 1
+                else:
+                    labels_dic[j["Name"]] = j["Confidence"]
+                    count["Name"] = 1
+
+    final_array = []
+
+    for i in labels_dic.keys():
+        final_array.append([i, labels_dic[i], 'gold',None])
         
-    data = json_util.dumps(data)
+    data = json_util.dumps({
+        "array": final_array
+    })
 
     return Response(content = data, media_type="application/json", status_code= status.HTTP_200_OK)
 
@@ -104,3 +139,42 @@ async def get_user_data(request:Request):
     }
     data = json_util.dumps(data)
     return Response(content = data, media_type="application/json", status_code= status.HTTP_200_OK)
+
+@twitter_router.get('/get-tweets-comprehend')
+async def get_user_tweets_comprehend(request:Request, user: str = Query(None)):
+    my_collection = database['user_tweets']
+    data = list(my_collection.find({"user": user}))
+
+    for d in data:
+        if "text_entities" not in d.keys():
+            text_entities = get_comp_entities(d["text"])["Entities"]
+            my_collection.update({"_id": d["_id"]},{"$set": {"text_entities": text_entities}})
+            
+
+    update_data = list(my_collection.find({"user":user}))
+
+    entities_dic = {}
+    count = {}
+
+    for d in update_data:
+        if "text_entities" in d.keys(): 
+            for j in d["text_entities"]:
+                if j["Type"] in entities_dic.keys():
+                    x = (j["Score"] + entities_dic[j["Type"]])/(count[j["Type"]] + 1)
+                    entities_dic[j["Type"]] = x
+                    count[j["Type"]] += 1
+                else:
+                    entities_dic[j["Type"]] = j["Score"]
+                    count[j["Type"]] = 1
+
+    final_array = []
+
+    for i in entities_dic.keys():
+        final_array.append([i, entities_dic[i]])
+        
+    data = json_util.dumps({
+        "array": final_array
+    })
+
+    return Response(content = data, media_type="application/json", status_code= status.HTTP_200_OK)
+

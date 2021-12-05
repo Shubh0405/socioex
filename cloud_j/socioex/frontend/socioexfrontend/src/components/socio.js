@@ -1,112 +1,149 @@
-import * as React from 'react';
-import Box from '@mui/material/Box';
-import TextField from '@mui/material/TextField';
-import axiosInstance from '../axios';
-import Button from '@mui/material/Button';
-import Customtable from './table';
+import * as React from "react";
+import Box from "@mui/material/Box";
+import TextField from "@mui/material/TextField";
+import axiosInstance from "../axios";
+import Button from "@mui/material/Button";
+import Customtable from "./table";
 import Chart from "react-google-charts";
+import { radioClasses } from "@mui/material";
 
 export default function MultilineTextFields() {
-    const [value, setValue] = React.useState('');
-    const [tweets, updatedTweets] = React.useState([]);
-    const [emotions, updatedEmotions] = React.useState([]);
+  const [value, setValue] = React.useState("");
+  const [tweets, updatedTweets] = React.useState([]);
+  const [emotions, updatedEmotions] = React.useState([]);
+  const [imageLabels, updatedImageLables] = React.useState([
+    [
+      "Entity",
+      "Percentage",
+      { role: "style" },
+      {
+        sourceColumn: 0,
+        role: "annotation",
+        type: "string",
+        calc: "stringify",
+      },
+    ],
+  ]);
 
-    const handleChange = (event) => {
-        setValue(event.target.value);
-    };
+  const [gotimage, updatedgotimage] = React.useState(false);
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-
-        const params = new URLSearchParams({
-          user: value, 
-        }).toString();
-
-        axiosInstance
-            .get(`get-user-tweets/?`+params)
-            .then((res) => {
-                console.log(res);
-                updatedTweets([res.data])
-            })
-            .catch((err) => {
-              console.log(err);
-            });
-    };
-
-    const handleAnalyze = (e) => {
-      e.preventDefault();
-
-      const params = new URLSearchParams({
-        user: value, 
-      }).toString();
-
-      axiosInstance
-          .get(`get-user-tone/?`+params)
-          .then((res) => {
-              console.log(res);
-              // for(var i=0; i<res.data.length; i++){
-              //   var tone = res.data[i]["tweet_tone"]["tone"]
-              //   var per = res.data[i]["tweet_tone"]["percent"]
-              //   var x = emotions[tone] + per
-              //   updatedEmotions({ ...emotions, emotions["tone"]: x })
-              // }
-              updatedEmotions(res.data["arr"])
-          })
-          .catch((err) => {
-            console.log(err);
-          });
+  const handleChange = (event) => {
+    setValue(event.target.value);
   };
 
-    React.useEffect(() => {
-      console.log(emotions);
-    },[emotions])
+  const handleSubmit = (e) => {
+    e.preventDefault();
 
-    return (
-      <>
-        <Box
-            component="form"
-            sx={{
-                '& .MuiTextField-root': { m: 1, width: '25ch' },
-            }}
-            noValidate
-            autoComplete="off"
+    const params = new URLSearchParams({
+      user: value,
+    }).toString();
+
+    axiosInstance
+      .get(`get-user-tweets/?` + params)
+      .then((res) => {
+        console.log(res);
+        updatedTweets([res.data]);
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+  };
+
+  const handleAnalyze = (e) => {
+    e.preventDefault();
+
+    const params = new URLSearchParams({
+      user: value,
+    }).toString();
+
+    axiosInstance
+      .get(`get-user-tone/?` + params)
+      .then((res) => {
+        console.log(res);
+        // for(var i=0; i<res.data.length; i++){
+        //   var tone = res.data[i]["tweet_tone"]["tone"]
+        //   var per = res.data[i]["tweet_tone"]["percent"]
+        //   var x = emotions[tone] + per
+        //   updatedEmotions({ ...emotions, emotions["tone"]: x })
+        // }
+        updatedEmotions(res.data["arr"]);
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+
+    axiosInstance.get(`get-user-images/?` + params).then((res) => {
+      updatedImageLables([...imageLabels, ...res.data["array"]]);
+      updatedgotimage(true);
+    });
+  };
+
+  React.useEffect(() => {
+    console.log(imageLabels);
+  }, [imageLabels]);
+
+  return (
+    <>
+      <Box
+        component="form"
+        sx={{
+          "& .MuiTextField-root": { m: 1, width: "25ch" },
+          display: "flex",
+          justifyContent: "center",
+        }}
+        noValidate
+        autoComplete="off"
+      >
+        <div
+          style={{
+            marginTop: "20px",
+            display: "flex",
+            flexDirection: "column",
+            alignItem: "center",
+            justifyContent: "center",
+          }}
         >
-            <div>
-                <TextField
-                    id="outlined-multiline-flexible"
-                    label="Multiline"
-                    multiline
-                    maxRows={4}
-                    value={value}
-                    onChange={handleChange}
-                />
-                <Button
-                    type="submit"
-                    fullWidth
-                    variant="contained"
-                    color="primary"
-                    onClick={handleSubmit}
-                >
-                    Submit
-                </Button>
-            </div>
-        </Box>
+          <TextField
+            id="outlined-multiline-flexible"
+            label="Username"
+            multiline
+            maxRows={4}
+            value={value}
+            onChange={handleChange}
+          />
+          <Button
+            type="submit"
+            fullWidth
+            variant="contained"
+            color="primary"
+            onClick={handleSubmit}
+            style={{ width: "90%", marginLeft: "10px", marginTop: "5%" }}
+          >
+            Submit
+          </Button>
+        </div>
+      </Box>
 
-        <br></br>
+      <br></br>
 
-        <Customtable tablerows={tweets[0]} />
+      {tweets.length > 0 && (
+        <>
+          <Customtable tablerows={tweets[0]} />
 
-        {/* {
-          (() => {
-              console.log("before")
-            if(tweets[0]){
-                console.log("after")
-              return(
-                <Customtable tablerows={tweets[0]} />
-              )
-            }
-          })
-        } */}
+          <Button
+            type="text"
+            fullWidth
+            variant="contained"
+            color="primary"
+            onClick={handleAnalyze}
+            style={{ marginTop: "30px", width: "200px", marginBottom: "30px" }}
+          >
+            Analyze
+          </Button>
+        </>
+      )}
+
+      {/* <Customtable tablerows={tweets[0]} />
 
                 <Button
                     type="text"
@@ -116,59 +153,44 @@ export default function MultilineTextFields() {
                     onClick={handleAnalyze}
                 >
                     Analyze
-                </Button>
+                </Button> */}
 
-      {
-        emotions.length > 0 && 
-        <Chart
-        width={'500px'}
-        height={'300px'}
-        chartType="PieChart"
-        loader={<div>Loading Chart</div>}
-        data={emotions}
-        options={{
-          title: 'Emotion chart',
-          // Just add this option
-          is3D: true,
-        }}
-        rootProps={{ 'data-testid': '2' }}
-      />
-      }
+      <div style={{ display: "flex", justifyContent: "center" }}>
+        {emotions.length > 0 && (
+          <Chart
+            width={"800px"}
+            height={"600px"}
+            chartType="PieChart"
+            loader={<div>Loading Chart</div>}
+            data={emotions}
+            options={{
+              title: "Emotion chart",
+              // Just add this option
+              is3D: true,
+            }}
+            rootProps={{ "data-testid": "2" }}
+          />
+        )}
 
-
-{/* <Chart
-  width={'500px'}
-  height={'300px'}
-  chartType="BarChart"
-  loader={<div>Loading Chart</div>}
-  data={[
-    [
-      'Entity',
-      'Percentage',
-      { role: 'style' },
-      {
-        sourceColumn: 0,
-        role: 'annotation',
-        type: 'string',
-        calc: 'stringify',
-      },
-    ],
-    ['Copper', 8.94, '#b87333', null],
-    ['Silver', 10.49, 'silver', null],
-    ['Gold', 19.3, 'gold', null],
-    ['Platinum', 21.45, 'color: #e5e4e2', null],
-  ]}
-  options={{
-    title: 'Image labels',
-    width: 600,
-    height: 400,
-    bar: { groupWidth: '95%' },
-    legend: { position: 'none' },
-  }}
-  // For tests
-  rootProps={{ 'data-testid': '6' }}
-/> */}
-
-      </>
-    );
+        {gotimage && (
+          <Chart
+            width={"800px"}
+            height={"600px"}
+            chartType="BarChart"
+            loader={<div>Loading Chart</div>}
+            data={imageLabels}
+            options={{
+              title: "Image labels",
+              width: 800,
+              height: 600,
+              bar: { groupWidth: "95%" },
+              legend: { position: "none" },
+            }}
+            // For tests
+            rootProps={{ "data-testid": "6" }}
+          />
+        )}
+      </div>
+    </>
+  );
 }

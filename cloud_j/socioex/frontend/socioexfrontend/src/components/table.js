@@ -33,7 +33,7 @@ export default function CustomizedTables(props) {
   return (
 
     <TableContainer component={Paper}>
-      <Table sx={{ minWidth: 700 }} aria-label="customized table">
+      <Table sx={{ maxWidth: "90%", marginLeft: "5%" }} aria-label="customized table">
         <TableHead>
           <TableRow>
             <StyledTableCell>Tweet</StyledTableCell>
