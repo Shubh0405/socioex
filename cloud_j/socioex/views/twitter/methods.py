@@ -121,6 +121,8 @@ async def get_user_data(request:Request, user: str = Query(None)):
 
     final_array = []
 
+    color = []
+
     for i in labels_dic.keys():
         final_array.append([i, labels_dic[i], 'gold',None])
         
